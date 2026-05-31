@@ -278,32 +278,76 @@ document.querySelectorAll('.btn-copy').forEach(btn => {
 /* ══════════════════════════════
    WISHES FORM
 ══════════════════════════════ */
-document.getElementById('wishSubmit')?.addEventListener('click', () => {
+const API_URL = 'https://script.google.com/macros/s/AKfycbwz83QZtwSEwsxZioqD4ZETnFuz74QYx04TNjLWSZXOtIdhn2r2MZUBSV1YxX2JeMbO/exec';
+document.getElementById('wishSubmit')?.addEventListener('click', async () => {
+
   const nameEl = document.getElementById('wishName');
   const msgEl  = document.getElementById('wishMsg');
-  const feed   = document.getElementById('wishesFeed');
 
   const name = nameEl.value.trim();
   const msg  = msgEl.value.trim();
-  if (!name || !msg) { showToast('Nama dan ucapan wajib diisi'); return; }
 
-  const initial = name.charAt(0).toUpperCase();
-  const item = document.createElement('div');
-  item.className = 'wish-item';
-  item.innerHTML = `
-    <div class="wish-avatar">${initial}</div>
-    <div class="wish-body">
-      <p class="wish-name">${escapeHtml(name)}</p>
-      <p class="wish-msg">"${escapeHtml(msg)}"</p>
-    </div>`;
+  if (!name || !msg) {
+    showToast('Nama dan ucapan wajib diisi');
+    return;
+  }
 
-  feed.appendChild(item);
-  feed.scrollTop = feed.scrollHeight;
+  try {
 
-  nameEl.value = '';
-  msgEl.value  = '';
-  showToast('Ucapan berhasil dikirim 💛');
+    await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        nama: name,
+        ucapan: msg
+      })
+    });
+
+    nameEl.value = '';
+    msgEl.value = '';
+
+    showToast('Ucapan berhasil dikirim 💛');
+
+    loadWishes();
+
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal mengirim ucapan');
+  }
+
 });
+
+async function loadWishes() {
+
+  try {
+
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    const feed = document.getElementById('wishesFeed');
+
+    feed.innerHTML = '';
+
+    data.forEach(item => {
+
+      const initial = item.nama.charAt(0).toUpperCase();
+
+      feed.innerHTML += `
+        <div class="wish-item">
+          <div class="wish-avatar">${initial}</div>
+          <div class="wish-body">
+            <p class="wish-name">${escapeHtml(item.nama)}</p>
+            <p class="wish-msg">"${escapeHtml(item.ucapan)}"</p>
+          </div>
+        </div>
+      `;
+
+    });
+
+  } catch (err) {
+    console.error(err);
+  }
+
+}
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -322,3 +366,5 @@ function showToast(msg) {
   document.body.appendChild(el);
   el.addEventListener('animationend', () => el.remove());
 }
+
+loadWishes();
